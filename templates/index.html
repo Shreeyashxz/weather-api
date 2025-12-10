@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weather Lookup</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container">
+        <h1 class="brand">Weather Lookup</h1>
+        <p class="tag">Fast, simple weather from <a href="https://wttr.in" target="_blank">wttr.in</a></p>
+      </div>
+    </header>
+
+    <main class="container main-grid">
+      <section class="search-panel card">
+        <form method="post" class="search-form" aria-label="Search city weather">
+          <label for="city" class="sr-only">City name</label>
+          <div class="input-row">
+            <input id="city" name="city" type="text" value="{{ city }}" placeholder="e.g. London" required>
+            <button type="submit" class="btn">Search</button>
+          </div>
+        </form>
+
+        {% if error %}
+          <div class="error">{{ error }}</div>
+        {% endif %}
+
+        {% if not weather and not error %}
+          <p class="muted">Enter a city and press <strong>Search</strong> to view the weather.</p>
+        {% endif %}
+      </section>
+
+      {% if weather %}
+      <section class="results-panel">
+        <div class="card results-card">
+          <div class="results-header">
+            <h2>Weather for {{ weather.area }}</h2>
+            <div class="badge">Now</div>
+          </div>
+          <div class="sky-scene" aria-hidden="true">
+            {% set desc = (weather.current.description or '')|lower %}
+            {% set ws = (weather.current.windspeed_kmph or 0)|int %}
+            {% set show_sun = ('sun' in desc) or ('clear' in desc) or ('sunny' in desc) %}
+            {% set show_cloud = ('cloud' in desc) or ('overcast' in desc) or ('fog' in desc) or ('mist' in desc) %}
+            {% set show_rain = ('rain' in desc) or ('drizzle' in desc) or ('shower' in desc) or ('thunder' in desc) %}
+            {% set show_wind = (ws >= 25) or ('wind' in desc) or ('breeze' in desc) or ('gust' in desc) %}
+
+            <div class="scene">
+              {% if show_sun %}
+                <div class="sun" role="img" aria-label="sun"></div>
+              {% endif %}
+
+              {% if show_cloud %}
+                <div class="cloud" role="img" aria-label="cloud">
+                  <div class="cloud-part c1"></div>
+                  <div class="cloud-part c2"></div>
+                  <div class="cloud-part c3"></div>
+                </div>
+              {% endif %}
+
+              {% if show_rain %}
+                <div class="rain" aria-hidden="true">
+                  <span class="drop"></span>
+                  <span class="drop"></span>
+                  <span class="drop"></span>
+                  <span class="drop"></span>
+                  <span class="drop"></span>
+                  <span class="drop"></span>
+                  <span class="drop"></span>
+                  <span class="drop"></span>
+                </div>
+              {% endif %}
+
+              {% if show_wind %}
+                <div class="wind" aria-hidden="true">
+                  <span class="wind-line w1"></span>
+                  <span class="wind-line w2"></span>
+                  <span class="wind-line w3"></span>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="details-grid">
+            <div class="detail">
+              <div class="detail-title">Temperature</div>
+              <div class="detail-value">{{ weather.current.temp_C }}°C</div>
+              <div class="detail-sub">Feels like {{ weather.current.feels_like_C }}°C</div>
+            </div>
+
+            <div class="detail">
+              <div class="detail-title">Condition</div>
+              <div class="detail-value">{{ weather.current.description }}</div>
+              <div class="detail-sub">Wind {{ weather.current.windspeed_kmph }} km/h</div>
+            </div>
+
+            <div class="detail">
+              <div class="detail-title">Humidity</div>
+              <div class="detail-value">{{ weather.current.humidity }}%</div>
+            </div>
+
+            <div class="detail">
+              <div class="detail-title">Today</div>
+              <div class="detail-value">Max {{ weather.today.maxtempC }}°C • Min {{ weather.today.mintempC }}°C</div>
+              <div class="detail-sub">Avg {{ weather.today.avgtempC }}°C</div>
+            </div>
+          </div>
+
+          <div class="therm-wrap">
+            {% set t = weather.current.temp_C|int %}
+            {% set raw_pct = (t + 30) * 1.25 %}
+            {% if raw_pct < 0 %}
+              {% set pct = 0 %}
+            {% elif raw_pct > 100 %}
+              {% set pct = 100 %}
+            {% else %}
+              {% set pct = raw_pct %}
+            {% endif %}
+            {# Map temperature (-30..50) to hue (200=blue .. 0=red) #}
+            {% set clamped = (t if t >= -30 else -30) if t <= 50 else 50 %}
+            {% set hue = ((1 - ((clamped + 30) / 80.0)) * 200) | round(0, 'floor') %}
+            <div class="therm" style="--temp-val: {{ t }}; --fill-h: {{ hue }}; --fill-pct: {{ pct }}%;" aria-hidden="true">
+              <div class="therm-tube">
+                <div class="therm-fill" title="{{ t }}°C"></div>
+              </div>
+              <div class="therm-bulb" aria-hidden="true"></div>
+              <div class="therm-label">{{ t }}°C</div>
+            </div>
+          </div>
+
+          <div class="astro">
+            <div>Sunrise: {{ weather.today.sunrise }}</div>
+            <div>Sunset: {{ weather.today.sunset }}</div>
+          </div>
+        </div>
+      </section>
+      {% endif %}
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">Powered by wttr.in • Build by sheetal</div>
+    </footer>
+  </body>
+</html>
